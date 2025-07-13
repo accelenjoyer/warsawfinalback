@@ -37,8 +37,7 @@ const upload = multer({
 router.get('/adminmenu', async (req, res) => {
     try {
         const articles = await Article.find()
-            .populate('categories')
-            .sort({ createdAt: -1 });
+            .populate('categories').lean()
 
         res.status(200).json(articles);
     } catch (error) {

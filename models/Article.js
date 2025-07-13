@@ -3,6 +3,7 @@ const { Schema, model, models } = pkg;
 
 const ArticleSchema = new Schema(
     {
+        date : Date,
         title: {
             type: String,
             required: [true, 'Заголовок обязателен'],
@@ -46,6 +47,7 @@ const ArticleSchema = new Schema(
         },
         seoDescription: String  // Для SEO-оптимизации
     },
+
     {
         timestamps: true,
         toJSON: { virtuals: true },  // Для виртуальных полей
