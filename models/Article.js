@@ -3,7 +3,10 @@ const { Schema, model, models } = pkg;
 
 const ArticleSchema = new Schema(
     {
-        date : Date,
+        date: {
+            type: Date,
+            default: Date.now
+        },
         title: {
             type: String,
             required: [true, 'Заголовок обязателен'],
@@ -19,11 +22,12 @@ const ArticleSchema = new Schema(
         },
         images: {
             type: String,
+            default: '',
             validate: {
                 validator: function(v) {
-                    return v === null || v.startsWith('http') || v.startsWith('data:image');
+                    return v === null || v === '' || v.startsWith('http') || v.startsWith('data:image') || v.startsWith('/uploads/');
                 },
-                message: props => `${props.value} не является валидным URL изображения`
+                message: "Проблема с image"
             }
         },
         author: {
@@ -59,15 +63,14 @@ const ArticleSchema = new Schema(
 ArticleSchema.virtual('formattedDate').get(function() {
     return this.date.toLocaleDateString('ru-RU');
 });
-
-// Middleware для обработки контента перед сохранением
-ArticleSchema.pre('save', function(next) {
-    if (this.isModified('rawContent')) {
-        // Преобразуем rawContent в HTML для основного content
+ArticleSchema.pre('validate', function(next) {
+    if (this.rawContent) {
         this.content = this.editorJsToHtml(this.rawContent);
     }
     next();
 });
+// Middleware для обработки контента перед сохранением
+
 
 // Метод для преобразования Editor.js JSON в HTML
 ArticleSchema.methods.editorJsToHtml = function(editorJsData) {

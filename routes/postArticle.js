@@ -47,45 +47,73 @@ router.get('/adminmenu', async (req, res) => {
 });
 
 // Создание новой статьи
-router.post('/adminmenu', upload.single('image'), async (req, res) => {
+router.post('/adminmenu', async (req, res) => {
     try {
-        const { title, rawContent, author, categories } = req.body;
+        const { title, rawContent, author, categories, images } = req.body;
 
-        if (!title || !rawContent || !categories) {
+        if (!title || !rawContent || !categories || !images) {
             return res.status(400).json({ message: 'Заполните все обязательные поля' });
-        }
-
-        // Обработка изображения
-        let imagePath = '';
-        if (req.file) {
-            imagePath = `/uploads/${req.file.filename}`;
         }
 
         const newArticle = new Article({
             title,
-            rawContent: JSON.parse(rawContent), // Сохраняем оригинальный JSON
+            rawContent,
             author: author || 'Автор по умолчанию',
-            categories: JSON.parse(categories),
-            images: imagePath
+            categories,
+            images,
         });
 
         await newArticle.save();
 
         res.status(201).json({
             message: 'Новость успешно создана',
-            article: newArticle
+            article: newArticle,
         });
     } catch (error) {
         console.error(error);
-
-        // Удаляем загруженное изображение в случае ошибки
-        if (req.file) {
-            fs.unlinkSync(path.join('public', req.file.path));
-        }
-
         res.status(500).json({
             message: 'Ошибка при создании новости',
-            error: error.message
+            error: error.message,
+        });
+    }
+});
+router.put('/adminmenu/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, rawContent, author, categories, images } = req.body;
+
+        // Проверяем, что обязательные поля заполнены
+        if (!title || !rawContent || !categories || !images) {
+            return res.status(400).json({ message: 'Заполните все обязательные поля' });
+        }
+
+        // Ищем статью по ID и обновляем её
+        const updatedArticle = await Article.findByIdAndUpdate(
+            id,
+            {
+                title,
+                rawContent,
+                author: author || 'Автор по умолчанию',
+                categories,
+                images,
+                updatedAt: Date.now() // Добавляем дату обновления
+            },
+            { new: true } // Возвращаем обновлённый документ
+        );
+
+        if (!updatedArticle) {
+            return res.status(404).json({ message: 'Статья не найдена' });
+        }
+
+        res.status(200).json({
+            message: 'Статья успешно обновлена',
+            article: updatedArticle,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            message: 'Ошибка при обновлении статьи',
+            error: error.message,
         });
     }
 });
