@@ -1,0 +1,61 @@
+version: "3.8"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: db
+    hostname: db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - stack
+
+  wordpress:
+    image: wordpress:latest
+    container_name: wordpress
+    hostname: wordpress
+    depends_on:
+      - db
+    ports:
+      - "8000:80"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - wp_data:/var/www/html
+    networks:
+      - stack
+
+  app:
+    image: node:20-alpine
+    container_name: app
+    hostname: app
+    working_dir: /app
+    volumes:
+      - ../:/app           # монтируем весь проект WARSAWBACK внутрь контейнера
+    command: sh -c "npm install && npm run start"
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - db
+    networks:
+      - stack
+    ports:
+      - "5000:5000"        # наружу, если нужен доступ
+    expose:
+      - "5000"             # только для внутренней сети
+
+volumes:
+  db_data:
+  wp_data:
+
+networks:
+  stack:
+    driver: bridge
