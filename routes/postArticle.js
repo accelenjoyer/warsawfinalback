@@ -4,6 +4,7 @@ import multer from "multer";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
+import Category from "../models/Category.js";
 
 const router = express.Router();
 
@@ -51,30 +52,41 @@ router.post('/adminmenu', async (req, res) => {
     try {
         const { title, rawContent, author, categories, images } = req.body;
 
-        if (!title || !rawContent || !categories || !images) {
-            return res.status(400).json({ message: 'Заполните все обязательные поля' });
+        // 1. Сначала находим или создаем категорию
+        let category = await Category.findOne({ slug: categories[0].slug });
+
+        if (!category) {
+            // Если категории нет - создаем новую
+            category = new Category({
+                name: categories[0].name,
+                slug: categories[0].slug,
+                wpId: categories[0].id // сохраняем ID из WordPress
+            });
+            await category.save();
         }
 
+        // 2. Теперь создаем статью с ObjectId категории
         const newArticle = new Article({
             title,
-            rawContent,
+            content: rawContent,
+            rawContent: rawContent,
             author: author || 'Автор по умолчанию',
-            categories,
+            categories: [category._id], // Используем ObjectId существующей категории
             images,
         });
 
         await newArticle.save();
 
+        console.log('✅ Статья сохранена с ID:', newArticle._id);
+
         res.status(201).json({
             message: 'Новость успешно создана',
             article: newArticle,
         });
+
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            message: 'Ошибка при создании новости',
-            error: error.message,
-        });
+        console.error('❌ Ошибка:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 router.put('/adminmenu/:id', async (req, res) => {
@@ -136,7 +148,7 @@ router.get('/adminmenu/:id', async (req, res) => {
 });
 
 // Обновление статьи
-router.put('/adminmenu/:id', upload.single('image'), async (req, res) => {
+/* router.put('/adminmenu/:id', upload.single('image'), async (req, res) => {
     try {
         const { title, rawContent, author, categories } = req.body;
         const articleId = req.params.id;
@@ -185,7 +197,7 @@ router.put('/adminmenu/:id', upload.single('image'), async (req, res) => {
             error: error.message
         });
     }
-});
+}); */
 
 
 

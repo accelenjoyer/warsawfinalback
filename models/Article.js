@@ -10,15 +10,16 @@ const ArticleSchema = new Schema(
         title: {
             type: String,
             required: [true, 'Заголовок обязателен'],
-            maxlength: [120, 'Заголовок не должен превышать 120 символов']
+
         },
         content: {
             type: String,
-            required: [true, 'Содержание обязательно']
+            required : true
+
         },
         rawContent: {  // Добавляем поле для хранения оригинального JSON от Editor.js
             type: Schema.Types.Mixed,
-            required: true
+            required: false
         },
         images: {
             type: String,
@@ -63,44 +64,11 @@ const ArticleSchema = new Schema(
 ArticleSchema.virtual('formattedDate').get(function() {
     return this.date.toLocaleDateString('ru-RU');
 });
-ArticleSchema.pre('validate', function(next) {
-    if (this.rawContent) {
-        this.content = this.editorJsToHtml(this.rawContent);
-    }
-    next();
-});
+
 // Middleware для обработки контента перед сохранением
 
 
 // Метод для преобразования Editor.js JSON в HTML
-ArticleSchema.methods.editorJsToHtml = function(editorJsData) {
-    if (!editorJsData) return '';
-
-    try {
-        const data = typeof editorJsData === 'string'
-            ? JSON.parse(editorJsData)
-            : editorJsData;
-
-        if (!data.blocks) return '';
-
-        return data.blocks.map(block => {
-            switch (block.type) {
-                case 'paragraph': return `<p>${block.data.text}</p>`;
-                case 'header': return `<h${block.data.level}>${block.data.text}</h${block.data.level}>`;
-                case 'image': return `<img src="${block.data.file.url}" class="editorjs-image" alt="${block.data.caption || ''}">`;
-                case 'list':
-                    const tag = block.data.style === 'ordered' ? 'ol' : 'ul';
-                    return `<${tag}>${block.data.items.map(item => `<li>${item}</li>`).join('')}</${tag}>`;
-                case 'quote': return `<blockquote>${block.data.text}</blockquote>`;
-                case 'code': return `<pre><code>${block.data.code}</code></pre>`;
-                default: return '';
-            }
-        }).join('');
-    } catch (error) {
-        console.error('Ошибка преобразования Editor.js:', error);
-        return '';
-    }
-};
 
 // Статический метод для поиска по категории
 ArticleSchema.statics.findByCategory = function(categoryId) {
