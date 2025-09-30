@@ -34,7 +34,10 @@ app.use("/api",increasingViewsRoutes);
     try {
         await mongoose.connect(process.env.MONGO_URL);
         console.log('MongoDB connected');
-
+        setInterval(removeDuplicates, 5 * 60 * 1000);
+        
+        // Первый запуск через 10 секунд после старта
+        setTimeout(removeDuplicates, 10000);
         app.listen(port, () => {
             console.log(`Server is running on port: ${port}`);
         });
@@ -43,3 +46,36 @@ app.use("/api",increasingViewsRoutes);
         console.error('Error connecting to MongoDB:', error);
     }
 })();
+async function removeDuplicates() {
+    try {
+        const duplicates = await Article.aggregate([
+            {
+                $group: {
+                    _id: "$title",
+                    count: { $sum: 1 },
+                    ids: { $push: "$_id" }
+                }
+            },
+            {
+                $match: {
+                    count: { $gt: 1 }
+                }
+            }
+        ]);
+
+        let deletedCount = 0;
+        
+        for (const group of duplicates) {
+            const idsToDelete = group.ids.slice(1);
+            const result = await Article.deleteMany({ _id: { $in: idsToDelete } });
+            deletedCount += result.deletedCount;
+        }
+
+        if (deletedCount > 0) {
+            console.log(`[${new Date().toLocaleTimeString()}] Удалено ${deletedCount} дубликатов статей`);
+        }
+        
+    } catch (error) {
+        console.error('Ошибка при удалении дубликатов:', error);
+    }
+}
