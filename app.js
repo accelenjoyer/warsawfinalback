@@ -11,6 +11,7 @@ import categoryRoutes from "./routes/addCategory.js"
 import getCategoriesRoutes from "./routes/getCategories.js";
 import findArticleRoutes from "./routes/findArticle.js"
 import increasingViewsRoutes from "./routes/increasingViews.js";
+import Article from './models/Article.js';
 dotenv.config();
 
 const app = express();
